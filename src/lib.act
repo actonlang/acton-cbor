@@ -1,0 +1,116 @@
+#
+#
+import math
+
+class TaggedItem(object):
+    tag: int
+    item: value
+
+    def __init__(self, tag: int, item: value):
+        self.tag = tag
+        self.item = item
+
+def decode(data: bytes) -> value:
+    return 0
+    
+def encode(val: value) -> bytes:
+    return b''
+
+
+def decode_item(data: bytes) -> (value, bytes):
+    if len(data) == 0:
+        raise ValueError('Cannot decode empty payload')
+
+    head_byte = data[0]
+
+    major_type = (head_byte & 0xe0) >> 5
+    addl_info = head_byte & 0x1f
+    data = data[1:]
+
+    item: value = 0
+
+    if major_type == 0x0:
+        item = int(addl_info)
+    elif major_type == 0x1:
+        item = -1 - int(addl_info)
+    elif major_type == 0x2:
+        item = decode_bytestr(addl_info, data)
+    elif major_type == 0x3:
+        item = decode_str(addl_info, data)
+    elif major_type == 0x4:
+        item = decode_array(addl_info, data)
+    elif major_type == 0x5:
+        item = decode_map(addl_info, data)
+    elif major_type == 0x6:
+        tagged_item, data = decode_item(data)
+        item = TaggedItem(addl_info, tagged_item)
+    elif major_type == 0x7:
+        item, data = decode_extended(addl_info, data)
+
+    return item, data
+
+
+def decode_bytestr(length, data) -> bytes:
+    return data[0:length]
+
+def decode_str(length, data) -> str:
+    return ''
+
+def decode_array(length, data) -> list[value]:
+    return []
+
+def decode_map(length, data) -> dict[str, value]:
+    return {}
+
+def decode_extended(addl_info, data) -> (value, bytes):
+    item: value = 0
+
+    if addl_info < 20:
+        item = addl_info
+    elif addl_info == 20:
+        item = False
+    elif addl_info == 21:
+        item = True
+    elif addl_info == 22:
+        #item = None
+        pass
+    elif addl_info == 23:
+        item = 23
+    elif addl_info == 24:
+        item_byte = data[0]
+        if item_byte < 32:
+            raise ValueError(f'Invalid value for two-bye simple value sequence: {item}')
+        item = item_byte
+        data = data[1:]
+
+    return item, data
+
+def decode_float16(data) -> float:
+    val = 0.0
+
+    sign = 1 if (data[0] & 0x80) == 0 else -1
+    exp = (data[0] & 0x7c) >> 2
+    man = ((data[0] & 0x03) << 8) + data[1]
+    val = math.ldexp(float(man), exp)
+
+    return val
+
+def decode_float32(data) -> float:
+    val = 0.0
+
+    sign = 1 if (data[0] & 0x80) == 0 else -1
+    exp = (data[0] & 0x7c) >> 2
+    man = ((data[0] & 0x03) << 8) + data[1]
+    val = math.ldexp(float(man), exp)
+
+    return val
+
+def decode_float64(data) -> float:
+    val = 0.0
+
+    sign = 1 if (data[0] & 0x80) == 0 else -1
+    exp = (data[0] & 0x7c) >> 2
+    man = ((data[0] & 0x03) << 8) + data[1]
+    val = math.ldexp(float(man), exp)
+
+    return val
