@@ -90,31 +90,11 @@ def decode_extended(addl_info, data) -> (value, bytes):
     return item, data
 
 def decode_float16(data) -> float:
-    val = 0.0
-
-    sign = 1 if (data[0] & 0x80) == 0 else -1
-    exp = (data[0] & 0x7c) >> 2
-    man = ((data[0] & 0x03) << 8) + data[1]
-    val = math.ldexp(float(man), exp)
-
-    return val
+    NotImplemented
 
 def decode_float32(data) -> float:
-    val = 0.0
-
-    sign = 1 if (data[0] & 0x80) == 0 else -1
-    exp = (data[0] & 0x7c) >> 2
-    man = ((data[0] & 0x03) << 8) + data[1]
-    val = math.ldexp(float(man), exp)
-
-    return val
+    NotImplemented
 
 def decode_float64(data) -> float:
-    val = 0.0
+    NotImplemented
 
-    sign = 1 if (data[0] & 0x80) == 0 else -1
-    exp = (data[0] & 0x7c) >> 2
-    man = ((data[0] & 0x03) << 8) + data[1]
-    val = math.ldexp(float(man), exp)
-
-    return val
