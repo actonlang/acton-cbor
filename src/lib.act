@@ -55,13 +55,26 @@ def decode_item(data: bytes) -> (value, bytes):
 
 
 def decode_bytestr(length, data) -> bytes:
-    return data[0:length]
+    if length != 31:
+        return data[0:length]
+    else:
+        return b''
 
 def decode_str(length, data) -> str:
     return ''
 
 def decode_array(length, data) -> list[value]:
-    return []
+    item = []
+
+    if length != 31:
+        for i in range(length):
+            element, remaining_data = decode_item(data)
+            if isinstance(element, StopCode):
+                raise ValueError(f'Stop code encountered in definite-length array')
+            item.append(element)
+            data = remaining_data
+
+    return item
 
 def decode_map(length, data) -> dict[str, value]:
     return {}
