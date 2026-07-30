@@ -15,7 +15,12 @@ class TaggedItem(object):
         self.item = item
 
 def decode(data: bytes) -> value:
-    return 0
+    item, remainder = decode_item(data)
+
+    if len(remainder) > 0:
+        raise ValueError(f'Spare bytes after decoding item {item}: {remainder}')
+
+    return item
     
 def encode(val: value) -> bytes:
     return b''
