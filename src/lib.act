@@ -76,7 +76,7 @@ def decode_item(data: bytes) -> (value, bytes):
         tagged_item, data = decode_item(data)
         item = decode_tagged(arg, tagged_item)
     elif major_type == 0x7:
-        item, data = decode_extended(arg, data)
+        item, data = decode_extended(addl_info, arg, data)
 
     return item, data
 
@@ -114,21 +114,21 @@ def decode_array(length, data, indefinite) -> list[value]:
 def decode_map(length, data, indefinite) -> dict[str, value]:
     return {}
 
-def decode_extended(arg, data) -> (value, bytes):
+def decode_extended(addl_info, arg, data) -> (value, bytes):
     item: value = 0
 
-    if arg < 20:
+    if addl_info < 20:
         item = arg
-    elif arg == 20:
+    elif addl_info == 20:
         item = False
-    elif arg == 21:
+    elif addl_info == 21:
         item = True
-    elif arg == 22:
+    elif addl_info == 22:
         #item = None
         pass
-    elif arg == 23:
+    elif addl_info == 23:
         item = 23
-    elif arg == 24:
+    elif addl_info == 24:
         item_byte = data[0]
         if item_byte < 32:
             raise ValueError(f'Invalid value for two-bye simple value sequence: {item}')
