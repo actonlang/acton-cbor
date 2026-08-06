@@ -58,13 +58,12 @@ def decode_item(data: bytes) -> (value, bytes):
             indefinite = True
 
     if major_type == 0x0:
-        if arg < 0:
-            raise ValueError('Invalid additional info value {addl_info} for major type 0')
         item = arg
     elif major_type == 0x1:
-        if arg < 0:
-            raise ValueError('Invalid additional info value {addl_info} for major type 1')
-        item = -1 - arg
+        if arg < 0x8000000000000000:
+            item = -1 - int(arg)
+        else:
+            item = -1 - bigint(arg)
     elif major_type == 0x2:
         item, data = decode_bytestr(arg, data, indefinite)
     elif major_type == 0x3:
