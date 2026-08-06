@@ -75,7 +75,7 @@ def decode_item(data: bytes) -> (value, bytes):
         item = decode_map(arg, data, indefinite)
     elif major_type == 0x6:
         tagged_item, data = decode_item(data)
-        item = TaggedItem(arg, tagged_item)
+        item = decode_tagged(arg, tagged_item)
     elif major_type == 0x7:
         item, data = decode_extended(arg, data)
 
@@ -147,3 +147,27 @@ def decode_float32(data) -> float:
 def decode_float64(data) -> float:
     NotImplemented
 
+def decode_tagged(arg, tagged_item) -> value:
+    if arg == 2:
+        if isinstance(tagged_item, bytes):
+            item: bigint = 0
+
+            for byte in tagged_item:
+                item |= bigint(byte)
+                item = item << 8
+            item = item >> 8
+
+            return item
+
+    elif arg == 3:
+        if isinstance(tagged_item, bytes):
+            item: bigint = 0
+
+            for byte in tagged_item:
+                item |= bigint(byte)
+                item = item << 8
+            item = item >> 8
+
+            return -item
+
+    raise ValueError(f'Unsupported tagged item with tag {arg} and body {tagged_item}')
