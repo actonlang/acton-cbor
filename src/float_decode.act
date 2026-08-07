@@ -1,0 +1,9 @@
+def decode_float16(arg: u64) -> float:
+    NotImplemented
+
+def decode_float32(arg: u64) -> float:
+    NotImplemented
+
+def decode_float64(arg: u64) -> float:
+    NotImplemented
+

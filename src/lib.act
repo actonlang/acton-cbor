@@ -1,6 +1,7 @@
 #
 #
 import math
+import float_decode
 
 class StopCode(object):
     def __init__(self):
@@ -129,22 +130,19 @@ def decode_extended(addl_info, arg, data) -> (value, bytes):
     elif addl_info == 23:
         item = 23
     elif addl_info == 24:
-        item_byte = data[0]
-        if item_byte < 32:
+        if arg < 32:
             raise ValueError(f'Invalid value for two-bye simple value sequence: {item}')
-        item = item_byte
-        data = data[1:]
+        item = arg
+    elif addl_info == 25:
+        item = float_decode.decode_float16(arg)
+    elif addl_info == 26:
+        item = float_decode.decode_float32(arg)
+    elif addl_info == 27:
+        item = float_decode.decode_float64(arg)
+    else:
+        raise ValueError(f'Invalid additional info value for major type 7: {addl_info}')
 
     return item, data
-
-def decode_float16(data) -> float:
-    NotImplemented
-
-def decode_float32(data) -> float:
-    NotImplemented
-
-def decode_float64(data) -> float:
-    NotImplemented
 
 def decode_tagged(arg, tagged_item) -> value:
     if arg == 2:
