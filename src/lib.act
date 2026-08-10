@@ -15,7 +15,7 @@ class TaggedItem(object):
         self.tag = tag
         self.item = item
 
-def decode(data: bytes) -> value:
+def decode(data: bytes) -> ?value:
     item, remainder = decode_item(data)
 
     if len(remainder) > 0:
@@ -23,11 +23,11 @@ def decode(data: bytes) -> value:
 
     return item
     
-def encode(val: value) -> bytes:
+def encode(val: ?value) -> bytes:
     return b''
 
 
-def decode_item(data: bytes) -> (value, bytes):
+def decode_item(data: bytes) -> (?value, bytes):
     if len(data) == 0:
         raise ValueError('Cannot decode empty payload')
 
@@ -37,7 +37,7 @@ def decode_item(data: bytes) -> (value, bytes):
     addl_info = head_byte & 0x1f
     data = data[1:]
 
-    item: value = 0
+    item: ?value = 0
 
     arg: u64 = u64(addl_info)
     indefinite = False
@@ -97,7 +97,7 @@ def decode_bytestr(length, data, indefinite) -> (bytes, bytes):
 def decode_str(length, data, indefinite) -> str:
     return ''
 
-def decode_array(length, data, indefinite) -> list[value]:
+def decode_array(length, data, indefinite) -> list[?value]:
     item = []
 
     if not indefinite:
@@ -112,11 +112,11 @@ def decode_array(length, data, indefinite) -> list[value]:
 
     return item
 
-def decode_map(length, data, indefinite) -> dict[str, value]:
+def decode_map(length, data, indefinite) -> dict[str, ?value]:
     return {}
 
-def decode_extended(addl_info, arg, data) -> (value, bytes):
-    item: value = 0
+def decode_extended(addl_info, arg, data) -> (?value, bytes):
+    item: ?value = 0
 
     if addl_info < 20:
         item = arg
@@ -125,8 +125,7 @@ def decode_extended(addl_info, arg, data) -> (value, bytes):
     elif addl_info == 21:
         item = True
     elif addl_info == 22:
-        #item = None
-        pass
+        item = None
     elif addl_info == 23:
         item = 23
     elif addl_info == 24:
