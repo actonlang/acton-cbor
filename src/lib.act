@@ -70,9 +70,9 @@ def decode_item(data: bytes) -> (?value, bytes):
     elif major_type == 0x3:
         item, data = decode_str(arg, data, indefinite)
     elif major_type == 0x4:
-        item = decode_array(arg, data, indefinite)
+        item, data = decode_array(arg, data, indefinite)
     elif major_type == 0x5:
-        item = decode_map(arg, data, indefinite)
+        item, data = decode_map(arg, data, indefinite)
     elif major_type == 0x6:
         tagged_item, data = decode_item(data)
         item = decode_tagged(arg, tagged_item)
@@ -107,7 +107,7 @@ def decode_str(length, data, indefinite) -> (str, bytes):
     else:
         return '', data
 
-def decode_array(length, data, indefinite) -> list[?value]:
+def decode_array(length, data, indefinite) -> (list[?value], bytes):
     item = []
 
     if not indefinite:
@@ -120,10 +120,10 @@ def decode_array(length, data, indefinite) -> list[?value]:
             data = remaining_data
             i += 1
 
-    return item
+    return item, data
 
-def decode_map(length, data, indefinite) -> dict[str, ?value]:
-    return {}
+def decode_map(length, data, indefinite) -> (dict[str, ?value], bytes):
+    return {}, data
 
 def decode_extended(addl_info, arg, data) -> (?value, bytes):
     item: ?value = 0
