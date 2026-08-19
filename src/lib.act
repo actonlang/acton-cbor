@@ -92,6 +92,15 @@ def decode_bytestr(length, data, indefinite) -> (bytes, bytes):
             i += 1
         return item, data
     else:
+        while True:
+            nextchunk, data = decode_item(data)
+
+            if isinstance(nextchunk, bytes):
+                item += nextchunk
+            elif isinstance(nextchunk, StopCode):
+                return item, data
+            else:
+                raise ValueError(f'Invalid item {item} encountered in indefinite string')
         return b'', data
 
 def decode_str(length, data, indefinite) -> (str, bytes):
@@ -105,6 +114,17 @@ def decode_str(length, data, indefinite) -> (str, bytes):
             i += 1
         return bytestr.decode(), data
     else:
+        item = ''
+        while True:
+            nextchunk, data = decode_item(data)
+
+            if isinstance(nextchunk, str):
+                item += nextchunk
+            elif isinstance(nextchunk, StopCode):
+                return item, data
+            else:
+                raise ValueError(f'Invalid item {item} encountered in indefinite string')
+
         return '', data
 
 def decode_array(length, data, indefinite) -> (list[?value], bytes):
@@ -232,6 +252,8 @@ def decode_extended(addl_info, arg, data) -> (?value, bytes):
         item = float_decode.decode_float32(arg)
     elif addl_info == 27:
         item = float_decode.decode_float64(arg)
+    elif addl_info == 31:
+        item = StopCode()
     else:
         raise ValueError(f'Invalid additional info value for major type 7: {addl_info}')
 
