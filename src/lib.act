@@ -122,8 +122,92 @@ def decode_array(length, data, indefinite) -> (list[?value], bytes):
 
     return item, data
 
-def decode_map(length, data, indefinite) -> (dict[str, ?value], bytes):
-    return {}, data
+def decode_map(length, data, indefinite) -> (?value, bytes):
+    item: ?value = None
+
+    if not indefinite:
+
+        if length > 0:
+            i: u64 = 0
+            first_key, remaining_data = decode_item(data)
+            val, remaining_data = decode_item(remaining_data)
+            if isinstance(first_key, int):
+                map = {}
+                map[first_key] = val
+                data = remaining_data
+                while i < (length - 1):
+                    key, remaining_data = decode_item(data)
+                    val, remaining_data = decode_item(remaining_data)
+                    if isinstance(key, int):
+                        map[key] = val
+                        data = remaining_data
+                    else:
+                        raise ValueError(f'Type mismatch between key {key} and int-keyed map')
+                    i += 1
+                item = map
+
+            elif isinstance(first_key, u64):
+                map = {}
+                map[first_key] = val
+                data = remaining_data
+                while i < (length - 1):
+                    key, remaining_data = decode_item(data)
+                    val, remaining_data = decode_item(remaining_data)
+                    if isinstance(key, u64):
+                        map[key] = val
+                        data = remaining_data
+                    else:
+                        raise ValueError(f'Type mismatch between key {key} and u64-keyed map')
+                item = map
+            elif isinstance(first_key, bigint):
+                map = {}
+                map[first_key] = val
+                data = remaining_data
+                while i < (length - 1):
+                    key, remaining_data = decode_item(data)
+                    val, remaining_data = decode_item(remaining_data)
+                    if isinstance(key, bigint):
+                        map[key] = val
+                        data = remaining_data
+                    else:
+                        raise ValueError(f'Type mismatch between key {key} and bigint-keyed map')
+                    i += 1
+                item = map
+            elif isinstance(first_key, str):
+                map = {}
+                map[first_key] = val
+                data = remaining_data
+                while i < (length - 1):
+                    key, remaining_data = decode_item(data)
+                    val, remaining_data = decode_item(remaining_data)
+                    if isinstance(key, str):
+                        map[key] = val
+                        data = remaining_data
+                    else:
+                        raise ValueError(f'Type mismatch between key {key} and str-keyed map')
+
+                    i += 1
+                item = map
+            elif isinstance(first_key, bytes):
+                map = {}
+                map[first_key] = val
+                data = remaining_data
+                while i < (length - 1):
+                    key, remaining_data = decode_item(data)
+                    val, remaining_data = decode_item(remaining_data)
+                    if isinstance(key, bytes):
+                        map[key] = val
+                        data = remaining_data
+                    else:
+                        raise ValueError(f'Type mismatch between key {key} and bytes-keyed map')
+                    i += 1
+                item = map
+            else:
+                raise ValueError(f'Unsupported type for key {first_key}')
+        else:
+            item = {}
+                
+    return item, data
 
 def decode_extended(addl_info, arg, data) -> (?value, bytes):
     item: ?value = 0
