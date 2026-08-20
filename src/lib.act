@@ -139,6 +139,14 @@ def decode_array(length, data, indefinite) -> (list[?value], bytes):
             item.append(element)
             data = remaining_data
             i += 1
+    else:
+        while True:
+            element, data = decode_item(data)
+
+            if isinstance(element, StopCode):
+                break
+
+            item.append(element)
 
     return item, data
 
@@ -225,6 +233,104 @@ def decode_map(length, data, indefinite) -> (?value, bytes):
             else:
                 raise ValueError(f'Unsupported type for key {first_key}')
         else:
+            item = {}
+
+    else:
+
+        first_key, remaining_data = decode_item(data)
+
+        val: ?value = None
+        if not isinstance(first_key, StopCode):
+            val, remaining_data = decode_item(remaining_data)
+
+        if isinstance(first_key, int):
+            map = {}
+            map[first_key] = val
+            data = remaining_data
+            while True:
+                key, remaining_data = decode_item(data)
+                if isinstance(key, int):
+                    val, remaining_data = decode_item(remaining_data)
+                    map[key] = val
+                    data = remaining_data
+                elif isinstance(key, StopCode):
+                    data = remaining_data
+                    break
+                else:
+                    raise ValueError(f'Type mismatch between key {key} and int-keyed map')
+            item = map
+
+        elif isinstance(first_key, u64):
+            map = {}
+            map[first_key] = val
+            data = remaining_data
+            while True:
+                key, remaining_data = decode_item(data)
+                if isinstance(key, u64):
+                    val, remaining_data = decode_item(remaining_data)
+                    map[key] = val
+                    data = remaining_data
+                elif isinstance(key, StopCode):
+                    data = remaining_data
+                    break
+                else:
+                    raise ValueError(f'Type mismatch between key {key} and u64-keyed map')
+            item = map
+        elif isinstance(first_key, bigint):
+            map = {}
+            map[first_key] = val
+            data = remaining_data
+            while True:
+                key, remaining_data = decode_item(data)
+                if isinstance(key, bigint):
+                    val, remaining_data = decode_item(remaining_data)
+                    map[key] = val
+                    data = remaining_data
+                elif isinstance(key, StopCode):
+                    data = remaining_data
+                    break
+                else:
+                    raise ValueError(f'Type mismatch between key {key} and bigint-keyed map')
+            item = map
+        elif isinstance(first_key, str):
+            map = {}
+            map[first_key] = val
+            data = remaining_data
+            while True:
+                key, remaining_data = decode_item(data)
+                if isinstance(key, str):
+                    val, remaining_data = decode_item(remaining_data)
+                    map[key] = val
+                    data = remaining_data
+                elif isinstance(key, StopCode):
+                    data = remaining_data
+                    break
+                else:
+                    raise ValueError(f'Type mismatch between key {key} and str-keyed map')
+
+            item = map
+        elif isinstance(first_key, bytes):
+            map = {}
+            map[first_key] = val
+            data = remaining_data
+            while True:
+                key, remaining_data = decode_item(data)
+                if isinstance(key, bytes):
+                    val, remaining_data = decode_item(remaining_data)
+                    map[key] = val
+                    data = remaining_data
+                elif isinstance(key, StopCode):
+                    data = remaining_data
+                    break
+                else:
+                    raise ValueError(f'Type mismatch between key {key} and bytes-keyed map')
+            item = map
+        elif isinstance(first_key, StopCode):
+            data = remaining_data
+        else:
+            raise ValueError(f'Unsupported type for key {first_key}')
+
+        if item is None:
             item = {}
                 
     return item, data
