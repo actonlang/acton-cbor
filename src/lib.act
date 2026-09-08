@@ -24,7 +24,21 @@ def decode(data: bytes) -> ?value:
     return item
     
 def encode(val: ?value) -> bytes:
-    return b''
+    if val is None:
+        return bytes([0xf6])
+    elif isinstance(val, bool):
+        if val:
+            return bytes([0xf5])
+        else:
+            return bytes([0xf4])
+    elif isinstance(val, int):
+        return encode_int(val)
+    elif isinstance(val, u64):
+        return encode_u64(val)
+    elif isinstance(val, bigint):
+        return encode_bigint(val)
+    else:
+        raise ValueError(f'Invalid value for CBOR encoding {val}')
 
 
 def decode_item(data: bytes) -> (?value, bytes):
@@ -80,6 +94,107 @@ def decode_item(data: bytes) -> (?value, bytes):
         item, data = decode_extended(addl_info, arg, data)
 
     return item, data
+
+def encode_u64(val: u64) -> bytes:
+    if val < 24:
+        return bytes([int(val)])
+    else:
+        int_bytes = int_to_bytes(bigint(val))
+        n = len(int_bytes)
+
+        if n == 1:
+            return bytes([0x18]) + int_bytes
+        elif n == 2:
+            return bytes([0x19]) + int_bytes
+        elif n < 5:
+            int_bytes = (b'\0' * (4 - n)) + int_bytes
+            return bytes([0x1a]) + int_bytes
+        elif n < 9:
+            int_bytes = (b'\0' * (8 - n)) + int_bytes
+            return bytes([0x1b]) + int_bytes
+        else:
+            raise ValueError('u64 should never encode to more than 8 bytes')
+
+    return b''
+
+def encode_int(val: int) -> bytes:
+    if val < 0:
+        offset = -(val + 1)
+        int_bytes = int_to_bytes(bigint(offset))
+        n = len(int_bytes)
+
+        if n == 1:
+            return bytes([0x38]) + int_bytes
+        elif n == 2:
+            return bytes([0x39]) + int_bytes
+        elif n < 5:
+            int_bytes = (b'\0' * (4 - n)) + int_bytes
+            return bytes([0x3a]) + int_bytes
+        elif n < 9:
+            int_bytes = (b'\0' * (8 - n)) + int_bytes
+            return bytes([0x3b]) + int_bytes
+        else:
+            raise ValueError('int should never encode to more than 8 bytes')
+    else:
+        return encode_u64(u64(val))
+
+    return b''
+
+def encode_bigint(val: bigint) -> bytes:
+    if val < 0:
+        offset = -(val + 1)
+        int_bytes = int_to_bytes(offset)
+
+    else:
+        if val < bigint(18446744073709551615):
+            return encode_u64(u64(val))
+        else:
+            int_bytes = int_to_bytes(val)
+            return bytes([0xc2]) + encode_bytestr(int_bytes)
+    return b''
+
+def int_to_bytes(val: bigint) -> bytes:
+    if val < 0:
+        raise ValueError('int_bytes is not meant to encode negative integers')
+
+    int_bytes = bytes([int(val & 0xff)])
+    val = val >> 8
+
+    while val != 0:
+        int_bytes = bytes([int(val & 0xff)]) + int_bytes
+        val = val >> 8
+
+    return int_bytes
+
+def encode_bytestr(val: bytes) -> bytes:
+    length = len(val)
+    header = b'\x40'
+
+    if length < 24:
+        header = bytes([0x40 | length])
+    elif bigint(length) < bigint(18446744073709551615):
+        len_bytes = int_to_bytes(bigint(length))
+        n = len(len_bytes)
+
+        if n == 1:
+            header = bytes([0x58]) + len_bytes
+        elif n == 2:
+            header = bytes([0x59]) + len_bytes
+        elif n < 5:
+            len_bytes = (b'\0' * (4 - n)) + len_bytes
+            header = bytes([0x5a]) + len_bytes
+        elif n < 9:
+            len_bytes = (b'\0' * (8 - n)) + len_bytes
+            header = bytes([0x5b]) + len_bytes
+    else:
+        header = b'\x5f'
+
+    res = header + val
+    if header == b'\x5f':
+        res += b'\xff'
+
+    return res
+        
 
 def decode_bytestr(length, data, indefinite) -> (bytes, bytes):
     item = b''
