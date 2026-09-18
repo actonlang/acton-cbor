@@ -7,3 +7,5 @@ def decode_float32(arg: u64) -> float:
 def decode_float64(arg: u64) -> float:
     NotImplemented
 
+def decompose_float(arg: float) -> (u64, u64, u64):
+    NotImplemented

@@ -1,7 +1,7 @@
 #
 #
 import math
-import float_decode
+import float_utils
 
 class StopCode(object):
     def __init__(self):
@@ -37,6 +37,8 @@ def encode(val: ?value) -> bytes:
         return encode_u64(val)
     elif isinstance(val, bigint):
         return encode_bigint(val)
+    elif isinstance(val, float):
+        return encode_float(val)
     else:
         raise ValueError(f'Invalid value for CBOR encoding {val}')
 
@@ -120,7 +122,35 @@ def encode_u64(val: u64) -> bytes:
 def encode_int(val: int) -> bytes:
     if val < 0:
         offset = -(val + 1)
-        int_bytes = int_to_bytes(bigint(offset))
+
+        if offset < 24:
+            return bytes([0x20 | offset])
+        else:
+            int_bytes = int_to_bytes(bigint(offset))
+            n = len(int_bytes)
+
+            if n == 1:
+                return bytes([0x38]) + int_bytes
+            elif n == 2:
+                return bytes([0x39]) + int_bytes
+            elif n < 5:
+                int_bytes = (b'\0' * (4 - n)) + int_bytes
+                return bytes([0x3a]) + int_bytes
+            elif n < 9:
+                int_bytes = (b'\0' * (8 - n)) + int_bytes
+                return bytes([0x3b]) + int_bytes
+            else:
+                raise ValueError('int should never encode to more than 8 bytes')
+    else:
+        return encode_u64(u64(val))
+
+    return b''
+
+def encode_bigint(val: bigint) -> bytes:
+    if val < 0:
+        offset = -(val + 1)
+        int_bytes = int_to_bytes(offset)
+
         n = len(int_bytes)
 
         if n == 1:
@@ -134,16 +164,7 @@ def encode_int(val: int) -> bytes:
             int_bytes = (b'\0' * (8 - n)) + int_bytes
             return bytes([0x3b]) + int_bytes
         else:
-            raise ValueError('int should never encode to more than 8 bytes')
-    else:
-        return encode_u64(u64(val))
-
-    return b''
-
-def encode_bigint(val: bigint) -> bytes:
-    if val < 0:
-        offset = -(val + 1)
-        int_bytes = int_to_bytes(offset)
+            return b'\xc3' + encode_bytestr(int_bytes)
 
     else:
         if val < bigint(18446744073709551615):
@@ -468,17 +489,41 @@ def decode_extended(addl_info, arg, data) -> (?value, bytes):
             raise ValueError(f'Invalid value for two-bye simple value sequence: {item}')
         item = arg
     elif addl_info == 25:
-        item = float_decode.decode_float16(arg)
+        item = float_utils.decode_float16(arg)
     elif addl_info == 26:
-        item = float_decode.decode_float32(arg)
+        item = float_utils.decode_float32(arg)
     elif addl_info == 27:
-        item = float_decode.decode_float64(arg)
+        item = float_utils.decode_float64(arg)
     elif addl_info == 31:
         item = StopCode()
     else:
         raise ValueError(f'Invalid additional info value for major type 7: {addl_info}')
 
     return item, data
+
+def encode_float(arg: float) -> bytes:
+    sign, exp, mant = float_utils.decompose_float(arg)
+
+    if exp < 0x20 and mant <  0x400:
+        float_int = (sign << 15) & (exp << 10) & mant
+        int_bytes = int_to_bytes(bigint(float_int))
+        n = len(int_bytes)
+        int_bytes = (b'\0' * (2 - n)) + int_bytes
+        return bytes([0xf9]) + int_bytes
+    elif exp < 0x100 and mant < 0x800000:
+        float_int = (sign << 31) & (exp << 23) & mant
+        int_bytes = int_to_bytes(bigint(float_int))
+        n = len(int_bytes)
+        int_bytes = (b'\0' * (4 - n)) + int_bytes
+        return bytes([0xfa]) + int_bytes
+    elif exp < 0x800 and mant < 0x0000:
+        float_int = (sign << 63) & (exp << 52) & mant
+        int_bytes = int_to_bytes(bigint(float_int))
+        n = len(int_bytes)
+        int_bytes = (b'\0' * (8 - n)) + int_bytes
+        return bytes([0xfb]) + int_bytes
+    else:
+        raise ValueError('float should never encode to more than 8 bytes')
 
 def decode_tagged(arg, tagged_item) -> value:
     if arg == 2:
