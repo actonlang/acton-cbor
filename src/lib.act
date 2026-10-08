@@ -43,6 +43,8 @@ def encode(val: ?value) -> bytes:
         return encode_str(val)
     elif isinstance(val, bytes):
         return encode_bytestr(val)
+    elif isinstance(val, list):
+        return encode_array(val)
     else:
         raise ValueError(f'Invalid value for CBOR encoding {val}')
 
@@ -320,6 +322,32 @@ def decode_array(length, data, indefinite) -> (list[?value], bytes):
             item.append(element)
 
     return item, data
+
+def encode_array(val: list[?value]):
+    length = len(val)
+    encoded = b'\x80'
+
+    if length < 24:
+        encoded = bytes([0x80 | length])
+    else:
+        len_bytes = int_to_bytes(bigint(length))
+        n = len(len_bytes)
+
+        if n == 1:
+            encoded = bytes([0x98]) + len_bytes
+        elif n == 2:
+            encoded = bytes([0x99]) + len_bytes
+        elif n < 5:
+            len_bytes = (b'\0' * (4 - n)) + len_bytes
+            encoded = bytes([0x9a]) + len_bytes
+        elif n < 9:
+            len_bytes = (b'\0' * (8 - n)) + len_bytes
+            encoded = bytes([0x9b]) + len_bytes
+
+    for item in val:
+        encoded += encode(item)
+
+    return encoded
 
 def decode_map(length, data, indefinite) -> (?value, bytes):
     item: ?value = None
