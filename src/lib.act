@@ -504,26 +504,11 @@ def decode_extended(addl_info, arg, data) -> (?value, bytes):
 def encode_float(arg: float) -> bytes:
     sign, exp, mant = float_utils.decompose_float(arg)
 
-    if exp < 0x20 and mant <  0x400:
-        float_int = (sign << 15) & (exp << 10) & mant
-        int_bytes = int_to_bytes(bigint(float_int))
-        n = len(int_bytes)
-        int_bytes = (b'\0' * (2 - n)) + int_bytes
-        return bytes([0xf9]) + int_bytes
-    elif exp < 0x100 and mant < 0x800000:
-        float_int = (sign << 31) & (exp << 23) & mant
-        int_bytes = int_to_bytes(bigint(float_int))
-        n = len(int_bytes)
-        int_bytes = (b'\0' * (4 - n)) + int_bytes
-        return bytes([0xfa]) + int_bytes
-    elif exp < 0x800 and mant < 0x0000:
-        float_int = (sign << 63) & (exp << 52) & mant
-        int_bytes = int_to_bytes(bigint(float_int))
-        n = len(int_bytes)
-        int_bytes = (b'\0' * (8 - n)) + int_bytes
-        return bytes([0xfb]) + int_bytes
-    else:
-        raise ValueError('float should never encode to more than 8 bytes')
+    float_int = (sign << 63) | (exp << 52) | mant
+    int_bytes = int_to_bytes(bigint(float_int))
+    n = len(int_bytes)
+    int_bytes = (b'\0' * (8 - n)) + int_bytes
+    return bytes([0xfb]) + int_bytes
 
 def decode_tagged(arg, tagged_item) -> value:
     if arg == 2:
