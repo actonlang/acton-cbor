@@ -39,6 +39,10 @@ def encode(val: ?value) -> bytes:
         return encode_bigint(val)
     elif isinstance(val, float):
         return encode_float(val)
+    elif isinstance(val, str):
+        return encode_str(val)
+    elif isinstance(val, bytes):
+        return encode_bytestr(val)
     else:
         raise ValueError(f'Invalid value for CBOR encoding {val}')
 
@@ -262,6 +266,37 @@ def decode_str(length, data, indefinite) -> (str, bytes):
                 raise ValueError(f'Invalid item {item} encountered in indefinite string')
 
         return '', data
+
+def encode_str(val: str) -> bytes:
+    
+    val_enc = val.encode()
+    length = len(val_enc)
+    header = b'\x60'
+
+    if length < 24:
+        header = bytes([0x60 | length])
+    elif bigint(length) < bigint(18446744073709551615):
+        len_bytes = int_to_bytes(bigint(length))
+        n = len(len_bytes)
+
+        if n == 1:
+            header = bytes([0x78]) + len_bytes
+        elif n == 2:
+            header = bytes([0x79]) + len_bytes
+        elif n < 5:
+            len_bytes = (b'\0' * (4 - n)) + len_bytes
+            header = bytes([0x7a]) + len_bytes
+        elif n < 9:
+            len_bytes = (b'\0' * (8 - n)) + len_bytes
+            header = bytes([0x7b]) + len_bytes
+    else:
+        header = b'\x7f'
+
+    res = header + val_enc
+    if header == b'\x7f':
+        res += b'\xff'
+
+    return res
 
 def decode_array(length, data, indefinite) -> (list[?value], bytes):
     item = []
